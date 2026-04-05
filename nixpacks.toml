@@ -1,0 +1,15 @@
+# Nixpacks plan for Coolify and other Nixpacks-based deploys.
+# Requires a "start" script in package.json (serves Vite's dist/ SPA output).
+
+[variables]
+NODE_ENV = "production"
+
+[phases.install]
+cacheDirectories = ["~/.npm", "node_modules/.cache"]
+
+[phases.build]
+dependsOn = ["install"]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run start"
