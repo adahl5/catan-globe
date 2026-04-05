@@ -138,7 +138,9 @@ export function createFaceGeometry(indices: readonly number[], verts: readonly V
 
   const positions: number[] = []
   const n = pts.length
-  for (let i = 1; i < n - 1; i++) {
+  // n triangles with wrap; i=1..n-2 omits wedges through p_0.
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n
     positions.push(
       centroid.x,
       centroid.y,
@@ -146,9 +148,9 @@ export function createFaceGeometry(indices: readonly number[], verts: readonly V
       pts[i].x,
       pts[i].y,
       pts[i].z,
-      pts[i + 1].x,
-      pts[i + 1].y,
-      pts[i + 1].z,
+      pts[j].x,
+      pts[j].y,
+      pts[j].z,
     )
   }
 
@@ -192,4 +194,23 @@ export function getCachedFaceGeometries(): CachedFaceGeometries {
     hex: hexagonFaces.map((idx) => createFaceGeometry(idx, vertices)),
   }
   return geometryCache
+}
+
+let poleHexagonIndices: { north: number; south: number } | null = null
+
+/**
+ * Hexagonal faces whose outward normals align most with +Y (north) and −Y (south).
+ * Ties use the smallest hex index (geometry has two symmetric candidates per pole).
+ */
+export function getPoleHexagonIndices(): { north: number; south: number } {
+  if (poleHexagonIndices) return poleHexagonIndices
+  const { vertices, hexagonFaces } = getTruncatedIcosahedron()
+  const ny = hexagonFaces.map((f) => {
+    const c = faceCentroid(f, vertices)
+    return faceOutwardNormal(f, vertices, c).y
+  })
+  const north = ny.reduce((best, y, i) => (y > ny[best]! || (y === ny[best] && i < best) ? i : best), 0)
+  const south = ny.reduce((best, y, i) => (y < ny[best]! || (y === ny[best] && i < best) ? i : best), 0)
+  poleHexagonIndices = { north, south }
+  return poleHexagonIndices
 }

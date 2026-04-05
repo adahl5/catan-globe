@@ -202,7 +202,7 @@
   margin: 0 0 1.5rem;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: var(--social-bg);
+  background: var(--code-bg);
   overflow: hidden;
 }
 
@@ -239,6 +239,38 @@
   flex-direction: column;
   align-items: center;
   gap: 0.12rem;
+}
+
+.globe-viz__labels--pole {
+  gap: 0.08rem;
+}
+
+.globe-viz__pole {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-h);
+  text-shadow: 0 0 4px var(--social-bg);
+}
+
+.globe-viz__pole--north {
+  opacity: 0.92;
+  margin-bottom: 0.04rem;
+}
+
+.globe-viz__pole--south {
+  color: #64748b;
+}
+
+.globe-viz__pole-note {
+  font-size: 0.52rem;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.88;
+  max-width: 7rem;
+  text-align: center;
+  line-height: 1.25;
 }
 
 .globe-viz__chip {
@@ -356,6 +388,51 @@
   .globe-viz__port--ore {
     color: #a5b4fc;
   }
+
+  .globe-viz__pole--south {
+    color: #94a3b8;
+  }
+}
+
+/* South pole: no game tile (rod mount) */
+.face-tile--south-pole {
+  border-style: dotted;
+  opacity: 0.92;
+  background: linear-gradient(180deg, var(--social-bg), var(--bg));
+}
+
+.face-tile__shape--pole {
+  opacity: 0.2;
+  background: #475569 !important;
+}
+
+.face-tile__pole {
+  z-index: 1;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+  color: var(--text-h);
+}
+
+.face-tile__pole-detail {
+  z-index: 1;
+  font-size: 0.65rem;
+  opacity: 0.75;
+  margin-top: 0.15rem;
+}
+
+.face-tile__pole-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.25rem;
+  padding: 0.05rem 0.28rem;
+  font-size: 0.55rem;
+  font-weight: 800;
+  border-radius: 4px;
+  background: rgba(14, 165, 233, 0.2);
+  color: #0369a1;
+  vertical-align: middle;
 }
 
 /* Port-only tile (no terrain / no number chip) */

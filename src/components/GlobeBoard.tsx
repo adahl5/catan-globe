@@ -2,9 +2,12 @@ import {
   DESERT_FACE_COUNT,
   GENERIC_PORT_COUNT,
   HEXAGON_COUNT,
+  NORTH_POLE_HEXAGON_INDEX,
   PENTAGON_COUNT,
+  PLAYABLE_FACE_COUNT,
   PORT_COUNT,
   RESOURCE_FACE_COUNT,
+  SOUTH_POLE_HEXAGON_INDEX,
   SPECIAL_PORT_COUNT,
   type FaceTerrain,
   type PortSlot,
@@ -35,11 +38,16 @@ export function GlobeBoard({
         <h2>Globe layout</h2>
         <p>
           Truncated icosahedron: <strong>{PENTAGON_COUNT} pentagons</strong> and{' '}
-          <strong>{HEXAGON_COUNT} hexagons</strong>. <strong>{RESOURCE_FACE_COUNT} faces</strong>{' '}
-          carry terrain (<strong>{DESERT_FACE_COUNT} desert</strong>, no die chip on those).{' '}
-          <strong>{PORT_COUNT} faces</strong> are port-only tiles ({GENERIC_PORT_COUNT} generic{' '}
-          <strong>3:1</strong> and {SPECIAL_PORT_COUNT} <strong>2:1</strong>) — no terrain and no
-          numbers on those. Port positions are randomized each full shuffle.
+          <strong>{HEXAGON_COUNT} hexagons</strong>. The <strong>south pole</strong> hexagon (
+          <strong>⬡ {SOUTH_POLE_HEXAGON_INDEX + 1}</strong>) has <strong>no tile</strong> (mounting
+          rod). The other <strong>{PLAYABLE_FACE_COUNT} faces</strong> are in play:{' '}
+          <strong>{RESOURCE_FACE_COUNT}</strong> carry terrain (
+          <strong>{DESERT_FACE_COUNT} desert</strong>, no die chip on those), and{' '}
+          <strong>{PORT_COUNT}</strong> are port-only (
+          {GENERIC_PORT_COUNT} generic <strong>3:1</strong> and {SPECIAL_PORT_COUNT}{' '}
+          <strong>2:1</strong>) — no terrain or numbers there. The <strong>north pole</strong> is
+          hexagon <strong>⬡ {NORTH_POLE_HEXAGON_INDEX + 1}</strong>. Port positions are randomized
+          each full shuffle.
         </p>
       </div>
 
@@ -78,6 +86,13 @@ export function GlobeBoard({
               terrain={hexTerrain?.[i] ?? null}
               port={hexPorts?.[i] ?? null}
               value={hexagons[i] ?? null}
+              pole={
+                i === SOUTH_POLE_HEXAGON_INDEX
+                  ? 'south'
+                  : i === NORTH_POLE_HEXAGON_INDEX
+                    ? 'north'
+                    : undefined
+              }
             />
           ))}
         </div>

@@ -96,6 +96,7 @@ export default function App() {
       <header className="app__header">
         <h1>Round Catan layout generator</h1>
         <p className="app__lede">
+          The south-pole hexagon is left empty for the mounting rod.{' '}
           <strong>{RESOURCE_FACE_COUNT} faces</strong> carry terrain (three desert, no chip).{' '}
           <strong>{NUMBERED_FACE_COUNT} die chips</strong> go on the non-desert ones.{' '}
           <strong>Seven port-only faces</strong> (two 3:1 and five 2:1) never share a tile with

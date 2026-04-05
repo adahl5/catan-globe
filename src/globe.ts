@@ -1,14 +1,25 @@
+import { getPoleHexagonIndices } from './truncatedIcosahedron'
+
 /** Truncated icosahedron (soccer ball): 12 pentagonal + 20 hexagonal faces. */
 export const PENTAGON_COUNT = 12
 export const HEXAGON_COUNT = 20
 export const FACE_COUNT = PENTAGON_COUNT + HEXAGON_COUNT
 
+const _poles = getPoleHexagonIndices()
+/** Hexagon index at the top (+Y); still carries a normal game tile. */
+export const NORTH_POLE_HEXAGON_INDEX = _poles.north
+/** Bottom (−Y) hexagon: no tile (globe mounting rod). Excluded from ports, terrain, and numbers. */
+export const SOUTH_POLE_HEXAGON_INDEX = _poles.south
+
 export const PORT_COUNT = 7
 export const GENERIC_PORT_COUNT = 2
 export const SPECIAL_PORT_COUNT = 5
 
-/** Faces that carry resource terrain (the rest are port-only tiles). */
-export const RESOURCE_FACE_COUNT = FACE_COUNT - PORT_COUNT
+/** Playable faces exclude the south-pole hexagon (rod mount, no tile). */
+export const PLAYABLE_FACE_COUNT = FACE_COUNT - 1
+
+/** Faces that carry resource terrain (the rest are port-only tiles among playable faces). */
+export const RESOURCE_FACE_COUNT = PLAYABLE_FACE_COUNT - PORT_COUNT
 
 /** Desert among resource faces only — no die chip. */
 export const DESERT_FACE_COUNT = 3
@@ -63,16 +74,16 @@ export const ROLL_WEIGHT: Record<number, number> = {
   12: 1,
 }
 
-/** Terrain multiset for the 25 resource faces only (7 other faces are port-only). */
+/** Terrain multiset for resource faces only (7 port-only faces on the playable shell; no south pole). */
 const RESOURCE_TERRAIN_COUNTS: Record<HexTerrain, number> = {
   desert: DESERT_FACE_COUNT,
   lumber: 5,
   grain: 5,
   brick: 5,
-  wool: 7,
+  wool: 6,
 }
 
-/** Default multiset: 22 chips for numbered resource faces (Catan-like weights, no 7). */
+/** Default multiset: one chip per numbered resource face (Catan-like weights, no 7). */
 export function defaultPoolCounts(): Record<number, number> {
   return {
     2: 1,
@@ -80,7 +91,7 @@ export function defaultPoolCounts(): Record<number, number> {
     4: 2,
     5: 3,
     6: 3,
-    8: 3,
+    8: 2,
     9: 2,
     10: 2,
     11: 2,
@@ -141,7 +152,9 @@ export function assignPortsOnFaces(
   type FaceRef = { kind: 'pent'; i: number } | { kind: 'hex'; i: number }
   const order: FaceRef[] = [
     ...Array.from({ length: PENTAGON_COUNT }, (_, i) => ({ kind: 'pent' as const, i })),
-    ...Array.from({ length: HEXAGON_COUNT }, (_, i) => ({ kind: 'hex' as const, i })),
+    ...Array.from({ length: HEXAGON_COUNT }, (_, i) => ({ kind: 'hex' as const, i })).filter(
+      (r) => r.i !== SOUTH_POLE_HEXAGON_INDEX,
+    ),
   ]
   shuffleInPlace(order, random)
   for (let p = 0; p < PORT_COUNT; p++) {
@@ -164,7 +177,8 @@ function assignTerrainOnResourceFaces(
     if (port != null) return null
     return tiles[ti++]!
   })
-  const hexTerrain: FaceTerrain[] = hexPorts.map((port) => {
+  const hexTerrain: FaceTerrain[] = hexPorts.map((port, i) => {
+    if (i === SOUTH_POLE_HEXAGON_INDEX) return null
     if (port != null) return null
     return tiles[ti++]!
   })
@@ -209,6 +223,10 @@ export function globeLayoutValid(
   for (let i = 0; i < HEXAGON_COUNT; i++) {
     const port = hexPorts[i]
     const t = hexTerrain[i]
+    if (i === SOUTH_POLE_HEXAGON_INDEX) {
+      if (port != null || t != null) return false
+      continue
+    }
     if (port != null) {
       if (t != null) return false
       portTotal++
@@ -244,6 +262,7 @@ export function assignNumbersForLayout(
     return pool[ri++]!
   })
   const hexagons = hexTerrain.map((terrain, i) => {
+    if (i === SOUTH_POLE_HEXAGON_INDEX) return null
     if (hexPorts[i] != null) return null
     if (terrain === 'desert') return null
     return pool[ri++]!
@@ -279,7 +298,7 @@ export function assignFullLayout(
   return { pentTerrain, hexTerrain, pentPorts, hexPorts, ...nums }
 }
 
-const STORAGE_KEY = 'round-catan-pool-v4'
+const STORAGE_KEY = 'round-catan-pool-v5'
 
 export function loadPoolFromStorage(): Record<number, number> | null {
   try {

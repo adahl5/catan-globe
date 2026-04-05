@@ -1,8 +1,19 @@
 import { Edges, Html, OrbitControls } from '@react-three/drei'
-import { Canvas } from '@react-three/fiber'
-import { Suspense, useMemo } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react'
+import { Vector3 } from 'three'
+import {
+  NORTH_POLE_HEXAGON_INDEX,
   ROLL_WEIGHT,
+  SOUTH_POLE_HEXAGON_INDEX,
   TRADE_RESOURCE_LABELS,
   type FaceTerrain,
   type HexTerrain,
@@ -37,6 +48,71 @@ const EMPTY_HEX = '#334155'
 const PORT_TILE_HEX = '#0c4a6e'
 const EDGE_COLOR = '#1e293b'
 
+/** Same scale as the root `<group scale={…}>` wrapping all globe meshes. */
+const GLOBE_SCALE = 2.35
+
+/** Hide labels when the face normal is far from the view direction (~80° cone toward camera). */
+const FACING_MIN_DOT = 0.18
+
+const _tmpWorldCentroid = new Vector3()
+const _tmpToCamera = new Vector3()
+
+/**
+ * @react-three/drei `Html` toggles its root div’s `display` and ignores `Object3D.visible` on parents.
+ * This runs in a sibling placed after `<Html />` so its `useFrame` runs after drei's and keeps the DOM hidden on the far hemisphere.
+ */
+function FacingLabelDomSink({
+  domRef,
+  faceCentroid,
+  faceNormal,
+}: {
+  domRef: RefObject<HTMLDivElement | null>
+  faceCentroid: Vector3
+  faceNormal: Vector3
+}) {
+  const { camera } = useThree()
+  useFrame(() => {
+    const el = domRef.current
+    if (!el) return
+    _tmpWorldCentroid.copy(faceCentroid).multiplyScalar(GLOBE_SCALE)
+    _tmpToCamera.subVectors(camera.position, _tmpWorldCentroid).normalize()
+    const facing = faceNormal.dot(_tmpToCamera) > FACING_MIN_DOT
+    el.style.display = facing ? '' : 'none'
+  })
+  return null
+}
+
+/**
+ * HTML labels on the far side of the globe read poorly; only show when the face points toward the camera.
+ */
+function FacingHtml({
+  faceCentroid,
+  faceNormal,
+  htmlPosition,
+  children,
+}: {
+  faceCentroid: Vector3
+  faceNormal: Vector3
+  htmlPosition: [number, number, number]
+  children: ReactNode
+}) {
+  const domRef = useRef<HTMLDivElement>(null)
+  return (
+    <group>
+      <Html
+        ref={domRef}
+        position={htmlPosition}
+        center
+        distanceFactor={5.2}
+        style={{ pointerEvents: 'none' }}
+      >
+        {children}
+      </Html>
+      <FacingLabelDomSink domRef={domRef} faceCentroid={faceCentroid} faceNormal={faceNormal} />
+    </group>
+  )
+}
+
 function isHighYield(n: number): boolean {
   return n === 6 || n === 8
 }
@@ -50,12 +126,24 @@ type LabelStackProps = {
   value: number | null
   terrain: FaceTerrain
   port: PortSlot | null | undefined
+  pole?: 'north' | 'south' | null
 }
 
-function FaceLabelStack({ value, terrain, port }: LabelStackProps) {
+function FaceLabelStack({ value, terrain, port, pole }: LabelStackProps) {
+  if (pole === 'south') {
+    return (
+      <div className="globe-viz__labels globe-viz__labels--pole">
+        <span className="globe-viz__pole globe-viz__pole--south">South pole</span>
+        <span className="globe-viz__pole-note">Rod mount · no tile</span>
+      </div>
+    )
+  }
   const showRobber = terrain === 'desert' && value == null
   return (
     <div className="globe-viz__labels">
+      {pole === 'north' && (
+        <span className="globe-viz__pole globe-viz__pole--north">North pole</span>
+      )}
       {value != null && (
         <span
           className={`globe-viz__chip ${isHighYield(value) ? 'globe-viz__chip--hot' : ''}`}
@@ -77,6 +165,21 @@ function FaceLabelStack({ value, terrain, port }: LabelStackProps) {
       ) : null}
     </div>
   )
+}
+
+/** Solid WebGL clear + scene background (matches `--code-bg` light / dark). */
+function OpaqueSceneBackground() {
+  const [bgHex, setBgHex] = useState(
+    () => (window.matchMedia('(prefers-color-scheme: dark)').matches ? '#1f2028' : '#f4f3ec'),
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const sync = () => setBgHex(mq.matches ? '#1f2028' : '#f4f3ec')
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+  return <color attach="background" args={[bgHex]} />
 }
 
 function GlobeScene({ pentagons, hexagons, pentTerrain, hexTerrain, pentPorts, hexPorts }: Props) {
@@ -106,7 +209,7 @@ function GlobeScene({ pentagons, hexagons, pentTerrain, hexTerrain, pentPorts, h
   const labelOffset = 0.055
 
   return (
-    <group scale={2.35}>
+    <group scale={GLOBE_SCALE}>
       <ambientLight intensity={0.62} />
       <directionalLight position={[6, 10, 7]} intensity={0.95} color="#ffffff" />
       <directionalLight position={[-5, -4, -8]} intensity={0.28} color="#a8c0e8" />
@@ -128,9 +231,13 @@ function GlobeScene({ pentagons, hexagons, pentTerrain, hexTerrain, pentPorts, h
               <Edges color={EDGE_COLOR} threshold={12} />
             </mesh>
             {showHtml && (
-              <Html position={pos.toArray()} center distanceFactor={5.2} style={{ pointerEvents: 'none' }}>
+              <FacingHtml
+                faceCentroid={centroid}
+                faceNormal={normal}
+                htmlPosition={pos.toArray() as [number, number, number]}
+              >
                 <FaceLabelStack value={v} terrain={terrain} port={port} />
-              </Html>
+              </FacingHtml>
             )}
           </group>
         )
@@ -142,20 +249,42 @@ function GlobeScene({ pentagons, hexagons, pentTerrain, hexTerrain, pentPorts, h
         const port = hexPorts?.[i] ?? null
         const { centroid, normal } = hexMeta[i]!
         const pos = centroid.clone().addScaledVector(normal, labelOffset)
+        const isSouthPole = i === SOUTH_POLE_HEXAGON_INDEX
+        const isNorthPole = i === NORTH_POLE_HEXAGON_INDEX
+        const pole = isSouthPole ? 'south' : isNorthPole ? 'north' : null
         const color =
           terrain != null ? TERRAIN_HEX[terrain] : port != null ? PORT_TILE_HEX : EMPTY_HEX
-        const showHtml = v != null || terrain === 'desert' || port != null
+        const showHtml =
+          isSouthPole ||
+          isNorthPole ||
+          v != null ||
+          terrain === 'desert' ||
+          port != null
 
         return (
           <group key={`hex-${i}`}>
             <mesh geometry={geom}>
-              <meshStandardMaterial color={color} roughness={0.5} metalness={0.05} />
+              {isSouthPole ? (
+                <meshStandardMaterial
+                  color={EMPTY_HEX}
+                  roughness={0.65}
+                  metalness={0.04}
+                  transparent
+                  opacity={0.22}
+                />
+              ) : (
+                <meshStandardMaterial color={color} roughness={0.5} metalness={0.05} />
+              )}
               <Edges color={EDGE_COLOR} threshold={12} />
             </mesh>
             {showHtml && (
-              <Html position={pos.toArray()} center distanceFactor={5.2} style={{ pointerEvents: 'none' }}>
-                <FaceLabelStack value={v} terrain={terrain} port={port} />
-              </Html>
+              <FacingHtml
+                faceCentroid={centroid}
+                faceNormal={normal}
+                htmlPosition={pos.toArray() as [number, number, number]}
+              >
+                <FaceLabelStack value={v} terrain={terrain} port={port} pole={pole} />
+              </FacingHtml>
             )}
           </group>
         )
@@ -172,9 +301,10 @@ export function GlobeVisualization(props: Props) {
       <Suspense fallback={<div className="globe-viz__loading">Loading 3D view…</div>}>
         <Canvas
           camera={{ position: [0, 0.35, 4.2], fov: 45, near: 0.1, far: 100 }}
-          gl={{ antialias: true, alpha: true }}
+          gl={{ antialias: true, alpha: false }}
           dpr={[1, 2]}
         >
+          <OpaqueSceneBackground />
           <GlobeScene {...props} />
         </Canvas>
       </Suspense>
