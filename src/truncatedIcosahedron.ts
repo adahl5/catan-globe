@@ -199,8 +199,10 @@ export function getCachedFaceGeometries(): CachedFaceGeometries {
 let poleHexagonIndices: { north: number; south: number } | null = null
 
 /**
- * Hexagonal faces whose outward normals align most with +Y (north) and −Y (south).
- * Ties use the smallest hex index (geometry has two symmetric candidates per pole).
+ * North: hexagon whose outward normal aligns most with +Y (tie → smallest index).
+ * South: the hexagon antipodal to north (centroid direction opposite), not merely the
+ * most −Y normal — several hexes share the same extreme normal.y, and independent
+ * tie-breaks can pick a non-opposite pair.
  */
 export function getPoleHexagonIndices(): { north: number; south: number } {
   if (poleHexagonIndices) return poleHexagonIndices
@@ -210,7 +212,17 @@ export function getPoleHexagonIndices(): { north: number; south: number } {
     return faceOutwardNormal(f, vertices, c).y
   })
   const north = ny.reduce((best, y, i) => (y > ny[best]! || (y === ny[best] && i < best) ? i : best), 0)
-  const south = ny.reduce((best, y, i) => (y < ny[best]! || (y === ny[best] && i < best) ? i : best), 0)
+  const northDir = faceCentroid(hexagonFaces[north]!, vertices).normalize()
+  let south = -1
+  let southDot = 1
+  for (let i = 0; i < hexagonFaces.length; i++) {
+    if (i === north) continue
+    const d = northDir.dot(faceCentroid(hexagonFaces[i]!, vertices).normalize())
+    if (south < 0 || d < southDot || (d === southDot && i < south)) {
+      southDot = d
+      south = i
+    }
+  }
   poleHexagonIndices = { north, south }
   return poleHexagonIndices
 }
