@@ -119,7 +119,7 @@ export function FaceTile({ shape, index, value, terrain, port, pole }: Props) {
         <NumberChip value={value} className="face-tile__chip" />
       ) : (
         <span className="face-tile__empty">
-          {terrain === 'desert' ? 'Robber' : '—'}
+          {terrain === 'desert' ? 'Desert' : '—'}
         </span>
       )}
     </div>

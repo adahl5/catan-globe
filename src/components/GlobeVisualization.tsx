@@ -154,7 +154,7 @@ function FaceLabelStack({ value, terrain, port, pole }: LabelStackProps) {
           </span>
         </span>
       )}
-      {showRobber && <span className="globe-viz__robber">Robber</span>}
+      {showRobber && <span className="globe-viz__robber">Desert</span>}
       {port ? (
         <span
           className={`globe-viz__port ${port.kind === '2:1' ? `globe-viz__port--${port.resource}` : 'globe-viz__port--any'}`}

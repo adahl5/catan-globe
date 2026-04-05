@@ -35,11 +35,26 @@ function emptyLayout(): {
   }
 }
 
+function initialPoolCounts(): Record<number, number> {
+  return loadPoolFromStorage() ?? defaultPoolCounts()
+}
+
+function layoutFromPool(counts: Record<number, number>) {
+  const result = assignFullLayout(counts)
+  if (!result) return emptyLayout()
+  return {
+    pentagons: result.pentagons,
+    hexagons: result.hexagons,
+    pentTerrain: result.pentTerrain,
+    hexTerrain: result.hexTerrain,
+    pentPorts: result.pentPorts,
+    hexPorts: result.hexPorts,
+  }
+}
+
 export default function App() {
-  const [counts, setCounts] = useState<Record<number, number>>(() => {
-    return loadPoolFromStorage() ?? defaultPoolCounts()
-  })
-  const [layout, setLayout] = useState(emptyLayout)
+  const [counts, setCounts] = useState<Record<number, number>>(initialPoolCounts)
+  const [layout, setLayout] = useState(() => layoutFromPool(initialPoolCounts()))
 
   useEffect(() => {
     savePoolToStorage(counts)
