@@ -134,7 +134,6 @@ function FaceLabelStack({ value, terrain, port, pole }: LabelStackProps) {
     return (
       <div className="globe-viz__labels globe-viz__labels--pole">
         <span className="globe-viz__pole globe-viz__pole--south">South pole</span>
-        <span className="globe-viz__pole-note">Rod mount · no tile</span>
       </div>
     )
   }
