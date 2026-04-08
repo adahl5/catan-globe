@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import {
   HEXAGON_COUNT,
   NUMBERED_FACE_COUNT,
@@ -13,9 +13,10 @@ import {
   type FaceTerrain,
   type PortSlot,
 } from './globe'
-import { GlobeBoard } from './components/GlobeBoard'
 import { NumberPoolEditor } from './components/NumberPoolEditor'
 import './App.css'
+
+const GlobeBoard = lazy(() => import('./components/GlobeBoard').then(m => ({ default: m.GlobeBoard })))
 
 function emptyLayout(): {
   pentagons: (number | null)[]
@@ -153,15 +154,21 @@ export default function App() {
             </button>
           </div>
         </aside>
-        <GlobeBoard
-          pentagons={layout.pentagons}
-          hexagons={layout.hexagons}
-          pentTerrain={layout.pentTerrain}
-          hexTerrain={layout.hexTerrain}
-          pentPorts={layout.pentPorts}
-          hexPorts={layout.hexPorts}
-        />
+        <Suspense fallback={<GlobeBoardLoading />}>
+          <GlobeBoard
+            pentagons={layout.pentagons}
+            hexagons={layout.hexagons}
+            pentTerrain={layout.pentTerrain}
+            hexTerrain={layout.hexTerrain}
+            pentPorts={layout.pentPorts}
+            hexPorts={layout.hexPorts}
+          />
+        </Suspense>
       </main>
     </div>
   )
+}
+
+function GlobeBoardLoading() {
+  return <div className="globe-board-loading">Loading board...</div>
 }
