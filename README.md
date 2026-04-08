@@ -1,73 +1,136 @@
-# React + TypeScript + Vite
+# Round Catan Layout Generator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Shamefully created using AI.
 
-Currently, two official plugins are available:
+A web application for generating randomized board layouts for a spherical (globe-shaped) Catan game using a truncated icosahedron geometry (soccer ball pattern). See [this Printables page](https://www.printables.com/model/1081798-settlers-of-catan-globe-edition-magnetized) for details on the globe.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+![Round Catan Generator](./src/assets/hero.png)
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **3D Interactive Globe**: Visualize the board layout on a rotating 3D truncated icosahedron with 12 pentagonal and 20 hexagonal faces
+- **Smart Layout Generation**: Automatically distributes terrain, ports, and number chips according to game rules
+- **Customizable Number Pool**: Adjust how many of each dice value (2-12, excluding 7) to use
+- **Dual Shuffle Modes**:
+  - **Full Shuffle**: Randomizes terrain types, port positions, and number placement
+  - **Reshuffle Numbers Only**: Keeps terrain and ports, only reassigns number chips
 
-## Expanding the ESLint configuration
+## Game Rules Implemented
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+The generator follows these rules for a round Catan globe:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **12 Pentagons** + **20 Hexagons** = 32 total faces
+- **31 Playable Faces**:
+  - **24 Resource Faces**: Carry terrain (3 Desert, 5 Lumber, 5 Grain, 5 Brick, 6 Wool)
+  - **7 Port-Only Faces**: 2 generic 3:1 ports and 5 specific 2:1 ports (Lumber, Brick, Grain, Wool, Ore)
+- **21 Number Chips**: Placed on non-desert resource faces (never on port-only faces)
+- **South Pole** is left empty (for mounting rod)
+- **North Pole**: One hexagon is designated as the north pole
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Tech Stack
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- **React 19** — UI framework
+- **TypeScript** — Type safety
+- **Three.js + React Three Fiber** — 3D globe visualization
+- **Vite** — Build tool and dev server
+- **Vitest** — Testing framework
+- **ESLint** — Code linting
+
+## Development
+
+### Prerequisites
+
+- Node.js 20+
+- npm or yarn
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/adahl5/catan-globe
+cd round-catan-generator
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app will be available at `http://localhost:5173`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Available Scripts
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run test` | Run tests in watch mode |
+| `npm run test:run` | Run tests once |
+| `npm run lint` | Run ESLint |
+| `npm start` | Serve production build (for deployment) |
+
+### Project Structure
+
+```
+src/
+├── components/
+│   ├── FaceTile.tsx           # Individual face display component
+│   ├── GlobeBoard.tsx         # Globe layout display wrapper
+│   ├── GlobeVisualization.tsx # 3D Three.js globe visualization
+│   ├── NumberChip.tsx         # Number chip display component
+│   └── NumberPoolEditor.tsx   # Number pool configuration UI
+├── __tests__/
+│   └── globe.test.ts          # Unit tests for layout logic
+├── test/
+│   └── setup.ts               # Test environment setup
+├── globe.ts                   # Core game logic (layout generation)
+├── truncatedIcosahedron.ts    # 3D geometry calculations
+├── App.tsx                    # Main application component
+├── App.css                    # Component styles
+├── index.css                  # Global styles
+└── main.tsx                   # Application entry point
+```
+
+## How It Works
+
+### Layout Generation Algorithm
+
+1. **Port Assignment**: 7 ports (2 generic 3:1, 5 specific 2:1) are randomly assigned to playable faces (excluding south pole)
+2. **Terrain Assignment**: 24 terrain tiles are randomly placed on non-port, non-south-pole faces
+3. **Number Assignment**: Number chips are randomly placed on non-desert resource faces
+
+The algorithm ensures no conflicts (ports and terrain never overlap, south pole remains empty).
+
+### 3D Visualization
+
+The globe is rendered using Three.js with:
+- Procedurally generated truncated icosahedron geometry
+- Face-based coloring based on terrain type
+- Interactive orbit controls (drag to rotate, scroll to zoom)
+- Dynamic labels that only show when faces are facing the camera
+- Proper lighting with ambient and directional lights
+
+## Deployment
+
+### Docker
+
+A `Dockerfile` is included for containerized deployment:
+
+```bash
+# Build image
+docker build -t round-catan-generator .
+
+# Run container
+docker run -p 3000:3000 round-catan-generator
+```
+
+### Static Hosting
+
+The `dist/` folder contains static files ready for deployment to any static hosting service (Netlify, Vercel, GitHub Pages, etc.).
+
+```bash
+npm run build
+# Deploy dist/ folder to your hosting provider
 ```
