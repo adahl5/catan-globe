@@ -4,8 +4,6 @@ Shamefully created using AI.
 
 A web application for generating randomized board layouts for a spherical (globe-shaped) Catan game using a truncated icosahedron geometry (soccer ball pattern). See [this Printables page](https://www.printables.com/model/1081798-settlers-of-catan-globe-edition-magnetized) for details on the globe.
 
-![Round Catan Generator](./src/assets/hero.png)
-
 ## Features
 
 - **3D Interactive Globe**: Visualize the board layout on a rotating 3D truncated icosahedron with 12 pentagonal and 20 hexagonal faces
