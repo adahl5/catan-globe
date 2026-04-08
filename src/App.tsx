@@ -10,10 +10,13 @@ import {
   loadPoolFromStorage,
   poolTotal,
   savePoolToStorage,
+  deserializeLayout,
   type FaceTerrain,
   type PortSlot,
+  type SerializableLayout,
 } from './globe'
 import { NumberPoolEditor } from './components/NumberPoolEditor'
+import { LayoutManager } from './components/LayoutManager'
 import './App.css'
 
 const GlobeBoard = lazy(() => import('./components/GlobeBoard').then(m => ({ default: m.GlobeBoard })))
@@ -56,6 +59,21 @@ function layoutFromPool(counts: Record<number, number>) {
 export default function App() {
   const [counts, setCounts] = useState<Record<number, number>>(initialPoolCounts)
   const [layout, setLayout] = useState(() => layoutFromPool(initialPoolCounts()))
+
+  // Load layout from URL if present
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    const layoutParam = url.searchParams.get('layout')
+    if (layoutParam) {
+      const parsedLayout = deserializeLayout(layoutParam)
+      if (parsedLayout) {
+        setLayout(parsedLayout)
+        // Clear the URL parameter without reloading
+        url.searchParams.delete('layout')
+        window.history.replaceState({}, '', url.toString())
+      }
+    }
+  }, [])
 
   useEffect(() => {
     savePoolToStorage(counts)
@@ -107,6 +125,22 @@ export default function App() {
     setLayout(emptyLayout())
   }, [])
 
+  const handleLoadLayout = useCallback((loadedLayout: SerializableLayout) => {
+    setLayout(loadedLayout)
+  }, [])
+
+  const currentSerializableLayout: SerializableLayout | null = useMemo(() => {
+    if (!hasLayout) return null
+    return {
+      pentagons: layout.pentagons,
+      hexagons: layout.hexagons,
+      pentTerrain: layout.pentTerrain!,
+      hexTerrain: layout.hexTerrain!,
+      pentPorts: layout.pentPorts!,
+      hexPorts: layout.hexPorts!,
+    }
+  }, [layout, hasLayout])
+
   return (
     <div className="app">
       <header className="app__header">
@@ -153,6 +187,10 @@ export default function App() {
               Clear layout
             </button>
           </div>
+          <LayoutManager
+            currentLayout={currentSerializableLayout}
+            onLoadLayout={handleLoadLayout}
+          />
         </aside>
         <Suspense fallback={<GlobeBoardLoading />}>
           <GlobeBoard

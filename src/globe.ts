@@ -299,6 +299,7 @@ export function assignFullLayout(
 }
 
 const STORAGE_KEY = 'round-catan-pool-v5'
+const SAVED_LAYOUTS_KEY = 'round-catan-saved-layouts-v1'
 
 export function loadPoolFromStorage(): Record<number, number> | null {
   try {
@@ -322,4 +323,155 @@ export function savePoolToStorage(counts: Record<number, number>): void {
   } catch {
     /* ignore quota */
   }
+}
+
+// Layout serialization
+export interface SerializableLayout {
+  pentagons: (number | null)[]
+  hexagons: (number | null)[]
+  pentTerrain: FaceTerrain[]
+  hexTerrain: FaceTerrain[]
+  pentPorts: (PortSlot | null)[]
+  hexPorts: (PortSlot | null)[]
+}
+
+/** Terrain encoding: d=desert, l=lumber, g=grain, b=brick, w=wool, -=null (port) */
+const TERRAIN_ENCODE: Record<string, string> = {
+  desert: 'd',
+  lumber: 'l',
+  grain: 'g',
+  brick: 'b',
+  wool: 'w',
+}
+const TERRAIN_DECODE: Record<string, FaceTerrain> = {
+  d: 'desert',
+  l: 'lumber',
+  g: 'grain',
+  b: 'brick',
+  w: 'wool',
+  '-': null,
+}
+
+/** Port encoding: 3=3:1, L=lumber, B=brick, G=grain, W=wool, O=ore, -=null */
+const PORT_ENCODE: Record<string, string> = {
+  '3:1': '3',
+  lumber: 'L',
+  brick: 'B',
+  grain: 'G',
+  wool: 'W',
+  ore: 'O',
+}
+
+function encodePort(port: PortSlot | null): string {
+  if (!port) return '-'
+  if (port.kind === '3:1') return '3'
+  return PORT_ENCODE[port.resource] || '-'
+}
+
+function decodePort(c: string): PortSlot | null {
+  if (c === '-') return null
+  if (c === '3') return { kind: '3:1' }
+  const resourceMap: Record<string, TwoToOneResource> = {
+    L: 'lumber',
+    B: 'brick',
+    G: 'grain',
+    W: 'wool',
+    O: 'ore',
+  }
+  const resource = resourceMap[c]
+  return resource ? { kind: '2:1', resource } : null
+}
+
+/**
+ * Serializes a layout to a compact string format.
+ * Format: pentNumbers|hexNumbers|pentTerrain|hexTerrain|pentPorts|hexPorts
+ * Numbers: comma-separated values, empty for null
+ * Terrain: encoded as single chars (d,l,g,b,w,-)
+ * Ports: encoded as single chars (3,L,B,G,W,O,-)
+ */
+export function serializeLayout(layout: SerializableLayout): string {
+  const pentNumbers = layout.pentagons.map(n => (n === null ? '' : String(n))).join(',')
+  const hexNumbers = layout.hexagons.map(n => (n === null ? '' : String(n))).join(',')
+  const pentTerrain = layout.pentTerrain.map(t => TERRAIN_ENCODE[t ?? '-'] ?? '-').join('')
+  const hexTerrain = layout.hexTerrain.map(t => TERRAIN_ENCODE[t ?? '-'] ?? '-').join('')
+  const pentPorts = layout.pentPorts.map(encodePort).join('')
+  const hexPorts = layout.hexPorts.map(encodePort).join('')
+
+  return [pentNumbers, hexNumbers, pentTerrain, hexTerrain, pentPorts, hexPorts].join('|')
+}
+
+/**
+ * Deserializes a layout from a compact string format.
+ * Returns null if the format is invalid.
+ */
+export function deserializeLayout(serialized: string): SerializableLayout | null {
+  try {
+    const parts = serialized.split('|')
+    if (parts.length !== 6) return null
+
+    const [pentNumbersStr, hexNumbersStr, pentTerrainStr, hexTerrainStr, pentPortsStr, hexPortsStr] = parts
+
+    const pentagons = pentNumbersStr.split(',').map(s => (s === '' ? null : Number(s)))
+    const hexagons = hexNumbersStr.split(',').map(s => (s === '' ? null : Number(s)))
+    const pentTerrain = pentTerrainStr.split('').map(c => TERRAIN_DECODE[c] ?? null)
+    const hexTerrain = hexTerrainStr.split('').map(c => TERRAIN_DECODE[c] ?? null)
+    const pentPorts = pentPortsStr.split('').map(decodePort)
+    const hexPorts = hexPortsStr.split('').map(decodePort)
+
+    // Validate lengths
+    if (pentagons.length !== PENTAGON_COUNT) return null
+    if (hexagons.length !== HEXAGON_COUNT) return null
+    if (pentTerrain.length !== PENTAGON_COUNT) return null
+    if (hexTerrain.length !== HEXAGON_COUNT) return null
+    if (pentPorts.length !== PENTAGON_COUNT) return null
+    if (hexPorts.length !== HEXAGON_COUNT) return null
+
+    return { pentagons, hexagons, pentTerrain, hexTerrain, pentPorts, hexPorts }
+  } catch {
+    return null
+  }
+}
+
+export interface SavedLayout {
+  id: string
+  name: string
+  createdAt: number
+  layout: SerializableLayout
+}
+
+export function loadSavedLayouts(): SavedLayout[] {
+  try {
+    const raw = localStorage.getItem(SAVED_LAYOUTS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as SavedLayout[]
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+export function saveLayout(name: string, layout: SerializableLayout): SavedLayout {
+  const savedLayout: SavedLayout = {
+    id: crypto.randomUUID(),
+    name,
+    createdAt: Date.now(),
+    layout,
+  }
+  const existing = loadSavedLayouts()
+  const updated = [savedLayout, ...existing].slice(0, 50) // Keep max 50 layouts
+  localStorage.setItem(SAVED_LAYOUTS_KEY, JSON.stringify(updated))
+  return savedLayout
+}
+
+export function deleteSavedLayout(id: string): void {
+  const existing = loadSavedLayouts()
+  const updated = existing.filter(l => l.id !== id)
+  localStorage.setItem(SAVED_LAYOUTS_KEY, JSON.stringify(updated))
+}
+
+export function getShareableUrl(layout: SerializableLayout): string {
+  const serialized = serializeLayout(layout)
+  const url = new URL(window.location.href)
+  url.searchParams.set('layout', serialized)
+  return url.toString()
 }
