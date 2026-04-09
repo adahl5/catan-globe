@@ -1,0 +1,180 @@
+.mp-lobby {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 200;
+  padding: 1rem;
+}
+
+.mp-lobby__card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem 2.5rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: var(--shadow);
+}
+
+.mp-lobby__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  color: var(--text-h);
+}
+
+.mp-lobby__desc {
+  margin: 0 0 1.25rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.mp-lobby__error {
+  color: #ef4444;
+  margin: 0 0 1.25rem;
+}
+
+.mp-lobby__spinner-text {
+  text-align: center;
+  color: var(--text);
+  padding: 1.5rem 0;
+}
+
+.mp-lobby__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mp-lobby__actions--col {
+  flex-direction: column;
+}
+
+.mp-lobby__btn-wide {
+  width: 100%;
+  justify-content: center;
+}
+
+.mp-lobby__join-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.mp-lobby__code-input {
+  flex: 1;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 1.15rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+  color: var(--text-h);
+  min-width: 0;
+}
+
+.mp-lobby__code-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ── Online room banner (shown while host is in PlayerSetup) ── */
+
+.online-room-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 210;
+  background: var(--accent-bg);
+  border-bottom: 1px solid var(--accent-border);
+  padding: 0.6rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  color: var(--text-h);
+}
+
+.online-room-banner__code {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.online-room-banner__copy {
+  background: none;
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.online-room-banner__copy:hover {
+  background: var(--accent-bg);
+}
+
+.online-room-banner__count {
+  margin-left: auto;
+  color: var(--text);
+}
+
+/* ── Waiting screen (non-host before game starts) ── */
+
+.online-waiting {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.online-waiting__card {
+  text-align: center;
+  padding: 2.5rem;
+  max-width: 400px;
+}
+
+.online-waiting__card h2 {
+  font-size: 1.4rem;
+  color: var(--text-h);
+  margin: 0 0 0.5rem;
+}
+
+.online-waiting__room-code {
+  font-family: var(--mono);
+  font-size: 2rem;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  margin: 0.25rem 0 1rem;
+}
+
+.online-waiting__info {
+  color: var(--text);
+  margin-bottom: 1.5rem;
+}
+
+.online-waiting__dots::after {
+  content: '';
+  animation: waiting-dots 1.5s infinite;
+}
+
+@keyframes waiting-dots {
+  0%   { content: ''; }
+  33%  { content: '.'; }
+  66%  { content: '..'; }
+  100% { content: '...'; }
+}

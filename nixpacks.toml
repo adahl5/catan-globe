@@ -1,5 +1,5 @@
 # Nixpacks plan for Coolify and other Nixpacks-based deploys.
-# Requires a "start" script in package.json (serves Vite's dist/ SPA output).
+# Runs the Express + WebSocket server which also serves the built SPA.
 
 [variables]
 NODE_ENV = "production"
@@ -12,4 +12,4 @@ dependsOn = ["install"]
 cmds = ["npm run build"]
 
 [start]
-cmd = "npm run start"
+cmd = "node server.mjs"

@@ -20,6 +20,12 @@ import { LayoutManager } from './components/LayoutManager'
 import './App.css'
 
 const GlobeBoard = lazy(() => import('./components/GlobeBoard').then(m => ({ default: m.GlobeBoard })))
+const GameContainer = lazy(() => import('./components/GameContainer').then(m => ({ default: m.GameContainer })))
+const OnlineGameContainer = lazy(() =>
+  import('./components/OnlineGameContainer').then(m => ({ default: m.OnlineGameContainer })),
+)
+
+type AppMode = 'generator' | 'game' | 'online'
 
 function emptyLayout(): {
   pentagons: (number | null)[]
@@ -59,16 +65,32 @@ function layoutFromPool(counts: Record<number, number>) {
 export default function App() {
   const [counts, setCounts] = useState<Record<number, number>>(initialPoolCounts)
   const [layout, setLayout] = useState(() => layoutFromPool(initialPoolCounts()))
+  const [appMode, setAppMode] = useState<AppMode>('generator')
+  // Room code pre-populated from an invite URL
+  const [initialRoomId, setInitialRoomId] = useState<string | null>(null)
 
-  // Load layout from URL if present
+  // Handle ?layout= and ?room= URL params on first load
   useEffect(() => {
     const url = new URL(window.location.href)
+    const roomParam = url.searchParams.get('room')
     const layoutParam = url.searchParams.get('layout')
-    if (layoutParam) {
+
+    if (roomParam && layoutParam) {
+      // Invite link: join room with embedded layout
       const parsedLayout = deserializeLayout(layoutParam)
       if (parsedLayout) {
         setLayout(parsedLayout)
-        // Clear the URL parameter without reloading
+        setInitialRoomId(roomParam)
+        setAppMode('online')
+        url.searchParams.delete('room')
+        url.searchParams.delete('layout')
+        window.history.replaceState({}, '', url.toString())
+      }
+    } else if (layoutParam) {
+      // Legacy layout-only share link
+      const parsedLayout = deserializeLayout(layoutParam)
+      if (parsedLayout) {
+        setLayout(parsedLayout)
         url.searchParams.delete('layout')
         window.history.replaceState({}, '', url.toString())
       }
@@ -141,6 +163,35 @@ export default function App() {
     }
   }, [layout, hasLayout])
 
+  function handleExitGame() {
+    setInitialRoomId(null)
+    setAppMode('generator')
+  }
+
+  // ── Full-screen modes ────────────────────────────────────────────────────
+
+  if (appMode === 'game' && currentSerializableLayout) {
+    return (
+      <Suspense fallback={<div className="globe-board-loading">Loading game…</div>}>
+        <GameContainer layout={currentSerializableLayout} onExit={handleExitGame} />
+      </Suspense>
+    )
+  }
+
+  if (appMode === 'online' && currentSerializableLayout) {
+    return (
+      <Suspense fallback={<div className="globe-board-loading">Loading game…</div>}>
+        <OnlineGameContainer
+          layout={currentSerializableLayout}
+          initialRoomId={initialRoomId ?? undefined}
+          onExit={handleExitGame}
+        />
+      </Suspense>
+    )
+  }
+
+  // ── Layout generator ─────────────────────────────────────────────────────
+
   return (
     <div className="app">
       <header className="app__header">
@@ -185,6 +236,24 @@ export default function App() {
             </button>
             <button type="button" className="btn btn--secondary" onClick={handleClear}>
               Clear layout
+            </button>
+            <button
+              type="button"
+              className="btn btn--play-game"
+              disabled={!hasLayout}
+              onClick={() => setAppMode('game')}
+              title={!hasLayout ? 'Generate a full layout first' : 'Play Catan on this globe layout'}
+            >
+              ▶ Play Game
+            </button>
+            <button
+              type="button"
+              className="btn btn--online"
+              disabled={!hasLayout}
+              onClick={() => setAppMode('online')}
+              title={!hasLayout ? 'Generate a full layout first' : 'Play online with friends'}
+            >
+              🌐 Play Online
             </button>
           </div>
           <LayoutManager

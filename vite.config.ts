@@ -5,6 +5,16 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    proxy: {
+      // Proxy WebSocket connections to the dev server during local development.
+      // Run `npm run dev:server` (node server.mjs) in a separate terminal on port 3000.
+      '/ws': {
+        target: 'ws://localhost:3000',
+        ws: true,
+      },
+    },
+  },
   build: {
     rollupOptions: {
       output: {
