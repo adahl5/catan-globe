@@ -6,6 +6,11 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
+# VITE_WS_URL is baked into the client bundle at build time.
+# Leave unset to use the default same-host /ws path (e.g. behind Caddy).
+ARG VITE_WS_URL
+ENV VITE_WS_URL=$VITE_WS_URL
+
 COPY . .
 RUN npm run build
 

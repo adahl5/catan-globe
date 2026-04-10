@@ -40,7 +40,33 @@ export interface OnlineGame {
 // WebSocket URL — works both in dev (proxied by Vite) and production
 // ---------------------------------------------------------------------------
 
+/**
+ * Returns the WebSocket server URL.
+ *
+ * Resolution order:
+ *   1. VITE_WS_URL build-time env var — set this when the WebSocket server
+ *      lives on a different host/port than the web server, e.g.:
+ *        VITE_WS_URL=wss://api.example.com/ws
+ *   2. Derived from the current page origin — works when Caddy (or any
+ *      reverse proxy) forwards /ws to the app on the same host.
+ */
 function getWsUrl(): string {
+  const envUrl = import.meta.env.VITE_WS_URL as string | undefined
+  if (envUrl) {
+    try {
+      const parsed = new URL(envUrl)
+      if (parsed.protocol === 'ws:' || parsed.protocol === 'wss:') return envUrl
+      console.warn(
+        `[useOnlineGame] VITE_WS_URL has scheme "${parsed.protocol}" — ` +
+        'must be ws:// or wss://. Falling back to default URL.',
+      )
+    } catch {
+      console.warn(
+        `[useOnlineGame] VITE_WS_URL "${envUrl}" is not a valid URL. ` +
+        'Falling back to default URL.',
+      )
+    }
+  }
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   return `${proto}//${window.location.host}/ws`
 }

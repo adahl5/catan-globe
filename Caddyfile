@@ -1,0 +1,16 @@
+# Caddyfile — reverse proxy for the Catan Globe app.
+#
+# Caddy sits in front of the Node Express/WebSocket server and handles:
+#   - TLS termination (automatic HTTPS when a real hostname is used)
+#   - WebSocket upgrade forwarding to /ws
+#   - All other traffic proxied to the app container
+#
+# Environment variables:
+#   CADDY_HOST   Hostname (or :port) Caddy binds to. Default: ":80"
+#                Examples: "example.com", ":8080"
+#   APP_HOST     Address of the upstream app server.  Default: "app:3000"
+#                Change to "localhost:3000" when running without Docker Compose.
+
+{$CADDY_HOST::80} {
+    reverse_proxy {$APP_HOST:app:3000}
+}

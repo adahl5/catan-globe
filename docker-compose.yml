@@ -1,0 +1,36 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        # Pass VITE_WS_URL at build time so the client bundle uses it.
+        # Leave unset to use the default same-host /ws path.
+        VITE_WS_URL: ${VITE_WS_URL:-}
+    environment:
+      PORT: "3000"
+      NODE_ENV: production
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "${CADDY_PORT:-80}:80"
+      - "${CADDY_HTTPS_PORT:-443}:443"
+    environment:
+      # Override APP_HOST if the app service is renamed or runs elsewhere.
+      APP_HOST: "app:3000"
+      # Set CADDY_HOST to a real domain for automatic HTTPS, e.g. "example.com".
+      CADDY_HOST: "${CADDY_HOST::80}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
